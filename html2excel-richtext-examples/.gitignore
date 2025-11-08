@@ -1,0 +1,14 @@
+# Generated Excel files from examples
+*.xlsx
+*.xls
+
+# Maven
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
