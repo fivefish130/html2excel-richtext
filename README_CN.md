@@ -162,7 +162,29 @@ EasyExcel.write(file, Product.class)
 
 ## 💡 示例
 
-### 带列表的 HTML
+### 运行完整示例
+`html2excel-richtext-examples` 模块包含了**所有功能的完整可运行示例**：
+
+```bash
+# 克隆并构建
+git clone https://github.com/fivefish130/html2excel-richtext.git
+cd html2excel-richtext/html2excel-richtext-examples
+
+# 运行 Core 示例（生成 7 个 Excel 文件）
+mvn exec:java -Dexec.mainClass="io.github.fivefish130.html2excel.richtext.examples.CoreExample"
+
+# 运行 EasyExcel 示例
+mvn exec:java -Dexec.mainClass="io.github.fivefish130.html2excel.richtext.examples.EasyExcelExample"
+
+# 运行 JXLS 示例
+mvn exec:java -Dexec.mainClass="io.github.fivefish130.html2excel.richtext.examples.JxlsExample"
+```
+
+**详情参见** [html2excel-richtext-examples/README.md](html2excel-richtext-examples/README.md)
+
+### 代码示例
+
+#### 带列表的 HTML
 
 ```java
 String html =

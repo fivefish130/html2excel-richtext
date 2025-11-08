@@ -162,7 +162,29 @@ EasyExcel.write(file, Product.class)
 
 ## 💡 Examples
 
-### HTML with Lists
+### Running Complete Examples
+The `html2excel-richtext-examples` module contains **complete, runnable examples** for all features:
+
+```bash
+# Clone and build
+git clone https://github.com/fivefish130/html2excel-richtext.git
+cd html2excel-richtext/html2excel-richtext-examples
+
+# Run Core examples (generates 7 Excel files)
+mvn exec:java -Dexec.mainClass="io.github.fivefish130.html2excel.richtext.examples.CoreExample"
+
+# Run EasyExcel examples
+mvn exec:java -Dexec.mainClass="io.github.fivefish130.html2excel.richtext.examples.EasyExcelExample"
+
+# Run JXLS examples
+mvn exec:java -Dexec.mainClass="io.github.fivefish130.html2excel.richtext.examples.JxlsExample"
+```
+
+**See** [html2excel-richtext-examples/README.md](html2excel-richtext-examples/README.md) **for details**
+
+### Code Examples
+
+#### HTML with Lists
 
 ```java
 String html =
