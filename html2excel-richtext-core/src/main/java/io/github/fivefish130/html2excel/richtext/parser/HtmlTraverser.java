@@ -40,6 +40,11 @@ public class HtmlTraverser {
      */
     public void traverse(Node node, Map<String, String> inheritedStyle,
                         XSSFRichTextString rich, XSSFCell targetCell) {
+        traverse(node, inheritedStyle, rich, targetCell, new TraverseContext());
+    }
+
+    private void traverse(Node node, Map<String, String> inheritedStyle,
+                         XSSFRichTextString rich, XSSFCell targetCell, TraverseContext context) {
         // Handle text nodes
         if (node instanceof TextNode) {
             TextNode textNode = (TextNode) node;
@@ -60,18 +65,54 @@ public class HtmlTraverser {
         Element el = (Element) node;
         String tag = el.tagName().toLowerCase(Locale.ROOT);
 
+        // Handle <br> explicitly
+        if ("br".equals(tag)) {
+            rich.append("\n");
+            return;
+        }
+
         // Merge styles
         Map<String, String> style = new HashMap<>(inheritedStyle);
         updateStyleFromTag(tag, style);
         updateStyleFromAttr(el, style);
 
+        // Handle list items with bullets/numbers
+        if ("li".equals(tag)) {
+            handleListItem(el, style, rich, targetCell, context);
+            return;
+        }
+
+        // Handle table rows
+        if ("tr".equals(tag)) {
+            handleTableRow(el, style, rich, targetCell, context);
+            return;
+        }
+
+        // Handle table cells
+        if ("td".equals(tag) || "th".equals(tag)) {
+            handleTableCell(el, style, rich, targetCell, context);
+            return;
+        }
+
         // Handle block elements
         if (isBlockTag(tag)) {
             int blockStart = rich.length();
 
+            // Track list context
+            if ("ul".equals(tag)) {
+                context.enterList(false);
+            } else if ("ol".equals(tag)) {
+                context.enterList(true);
+            }
+
             // Traverse children
             for (Node child : el.childNodes()) {
-                traverse(child, style, rich, targetCell);
+                traverse(child, style, rich, targetCell, context);
+            }
+
+            // Exit list context
+            if ("ul".equals(tag) || "ol".equals(tag)) {
+                context.exitList();
             }
 
             int blockEnd = rich.length();
@@ -91,7 +132,7 @@ public class HtmlTraverser {
         // Handle inline elements
         int start = rich.length();
         for (Node child : el.childNodes()) {
-            traverse(child, style, rich, targetCell);
+            traverse(child, style, rich, targetCell, context);
         }
         int end = rich.length();
 
@@ -101,6 +142,103 @@ public class HtmlTraverser {
             if (font != null) {
                 rich.applyFont(start, end, font);
             }
+        }
+    }
+
+    /**
+     * Handle list item with bullet or number
+     */
+    private void handleListItem(Element el, Map<String, String> style,
+                                XSSFRichTextString rich, XSSFCell targetCell, TraverseContext context) {
+        // Add bullet or number
+        if (context.isOrderedList()) {
+            int itemNumber = context.getAndIncrementItemNumber();
+            rich.append(itemNumber + ". ");
+        } else {
+            rich.append("\u2022 ");  // Bullet point: •
+        }
+
+        // Traverse content
+        for (Node child : el.childNodes()) {
+            traverse(child, style, rich, targetCell, context);
+        }
+
+        rich.append("\n");
+    }
+
+    /**
+     * Handle table row
+     */
+    private void handleTableRow(Element el, Map<String, String> style,
+                                XSSFRichTextString rich, XSSFCell targetCell, TraverseContext context) {
+        context.enterRow();
+
+        for (Node child : el.childNodes()) {
+            traverse(child, style, rich, targetCell, context);
+        }
+
+        context.exitRow();
+        rich.append("\n");
+    }
+
+    /**
+     * Handle table cell
+     */
+    private void handleTableCell(Element el, Map<String, String> style,
+                                 XSSFRichTextString rich, XSSFCell targetCell, TraverseContext context) {
+        // Add separator for non-first cells
+        if (context.getCellIndex() > 0) {
+            rich.append(" | ");
+        }
+
+        context.incrementCellIndex();
+
+        // Traverse content
+        for (Node child : el.childNodes()) {
+            traverse(child, style, rich, targetCell, context);
+        }
+    }
+
+    /**
+     * Context for traversing (tracks list/table state)
+     */
+    private static class TraverseContext {
+        private boolean inOrderedList = false;
+        private int listItemNumber = 1;
+        private int cellIndex = 0;
+
+        void enterList(boolean ordered) {
+            this.inOrderedList = ordered;
+            this.listItemNumber = 1;
+        }
+
+        void exitList() {
+            this.inOrderedList = false;
+            this.listItemNumber = 1;
+        }
+
+        boolean isOrderedList() {
+            return inOrderedList;
+        }
+
+        int getAndIncrementItemNumber() {
+            return listItemNumber++;
+        }
+
+        void enterRow() {
+            this.cellIndex = 0;
+        }
+
+        void exitRow() {
+            this.cellIndex = 0;
+        }
+
+        int getCellIndex() {
+            return cellIndex;
+        }
+
+        void incrementCellIndex() {
+            cellIndex++;
         }
     }
 

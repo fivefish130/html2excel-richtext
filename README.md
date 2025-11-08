@@ -1,9 +1,13 @@
 # 📊 HTML to Excel Rich Text Converter
 
 <p align="center">
+  <b>English</b> | <a href="README_CN.md">简体中文</a>
+</p>
+
+<p align="center">
   <a href="#features">Features</a> •
   <a href="#quick-start">Quick Start</a> •
-  <a href="#documentation">Documentation</a> •
+  <a href="#modules">Modules</a> •
   <a href="#examples">Examples</a> •
   <a href="#contributing">Contributing</a>
 </p>
@@ -15,8 +19,8 @@
 Apache POI is great for creating Excel files, but converting HTML to rich text with proper styling is surprisingly difficult. This library fills that gap with:
 
 - ✅ **Production-Ready**: Refactored from real enterprise applications
-- ✅ **Feature-Complete**: Supports colors, fonts, backgrounds, hyperlinks, images
-- ✅ **High Performance**: Font/style caching to minimize Excel object creation
+- ✅ **Feature-Complete**: Supports colors, fonts, backgrounds, hyperlinks, images, lists, tables
+- ✅ **High Performance**: Font/style caching, async image downloading
 - ✅ **Fault-Tolerant**: Auto-fixes malformed HTML using Jsoup
 - ✅ **Well-Architected**: Clean code with SOLID principles
 - ✅ **Well-Tested**: Comprehensive unit tests
@@ -30,9 +34,11 @@ Apache POI is great for creating Excel files, but converting HTML to rich text w
 - **CSS Parsing**: Inline `style` attribute support
 
 ### Advanced Features
+- **List Support**: `<ul>`, `<ol>`, `<li>` with automatic bullets/numbers
+- **Table Support**: `<table>`, `<tr>`, `<td>` converted to text table format
 - **Cell Backgrounds**: Maps `background-color` to Excel fill
 - **Hyperlinks**: Auto-extract `<a href>` tags
-- **Image Embedding**: Download and embed images from `<img src>`
+- **Image Embedding**: Download and embed images from `<img src>` (async/parallel)
 - **Long Text Handling**: Auto-truncate texts >32,767 characters
 
 ### Enterprise-Grade
@@ -45,19 +51,43 @@ Apache POI is great for creating Excel files, but converting HTML to rich text w
 
 ### Maven
 ```xml
+<!-- Core module -->
 <dependency>
     <groupId>io.github.fivefish130</groupId>
-    <artifactId>html2excel-richtext</artifactId>
+    <artifactId>html2excel-richtext-core</artifactId>
+    <version>1.0.0</version>
+</dependency>
+
+<!-- JXLS integration (optional) -->
+<dependency>
+    <groupId>io.github.fivefish130</groupId>
+    <artifactId>html2excel-richtext-jxls</artifactId>
+    <version>1.0.0</version>
+</dependency>
+
+<!-- EasyExcel integration (optional) -->
+<dependency>
+    <groupId>io.github.fivefish130</groupId>
+    <artifactId>html2excel-richtext-easyexcel</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```
 
 ### Gradle
 ```gradle
-implementation 'io.github.fivefish130:html2excel-richtext:1.0.0'
+// Core module
+implementation 'io.github.fivefish130:html2excel-richtext-core:1.0.0'
+
+// JXLS integration (optional)
+implementation 'io.github.fivefish130:html2excel-richtext-jxls:1.0.0'
+
+// EasyExcel integration (optional)
+implementation 'io.github.fivefish130:html2excel-richtext-easyexcel:1.0.0'
 ```
 
 ## 🚀 Quick Start
+
+### Basic Usage (Core)
 
 ```java
 import io.github.fivefish130.html2excel.richtext.HtmlToExcelConverter;
@@ -79,19 +109,93 @@ try (FileOutputStream fos = new FileOutputStream("output.xlsx")) {
 }
 ```
 
-**Result**: Excel cell shows: **Bold** *Italic* <span style="color:red">Red</span>
+## 📦 Modules
+
+### Core Module
+Core HTML to Excel rich text converter
+
+```xml
+<dependency>
+    <groupId>io.github.fivefish130</groupId>
+    <artifactId>html2excel-richtext-core</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+### JXLS Integration
+Use HTML conversion in JXLS templates
+
+```java
+// In Excel template comment:
+// jx:html(lastCell="A1" value="product.description")
+
+Context context = new Context();
+context.putVar("product", product);
+
+JxlsHtmlHelper.processTemplate(
+    templateInputStream,
+    outputStream,
+    context
+);
+```
+
+### EasyExcel Integration
+Auto-convert HTML fields using annotations
+
+```java
+public class Product {
+    private String name;
+
+    @HtmlCell
+    private String description;  // Auto converted from HTML to rich text
+
+    @HtmlCell(enableImageDownload = true)
+    private String detailedInfo;
+}
+
+// Usage
+EasyExcel.write(file, Product.class)
+    .registerWriteHandler(new HtmlCellWriteHandler())
+    .sheet("Products")
+    .doWrite(dataList);
+```
 
 ## 💡 Examples
 
-### Styled Text
+### HTML with Lists
+
 ```java
-String html = """
-<p style='font-size:14px;color:#008000'>
-  <b>Product:</b> <span style='color:#0000FF'>Sample Item</span>
-</p>
-<p><i>Price: $99.99</i></p>
-""";
+String html =
+    "<ul>" +
+    "  <li>First item</li>" +
+    "  <li>Second item</li>" +
+    "  <li>Third item</li>" +
+    "</ul>";
 converter.applyHtmlToCell(cell, html);
+```
+
+**Result**:
+```
+• First item
+• Second item
+• Third item
+```
+
+### HTML with Tables
+
+```java
+String html =
+    "<table>" +
+    "  <tr><td>Name</td><td>Age</td></tr>" +
+    "  <tr><td>John</td><td>25</td></tr>" +
+    "</table>";
+converter.applyHtmlToCell(cell, html);
+```
+
+**Result**:
+```
+Name | Age
+John | 25
 ```
 
 ### With Background Color
@@ -107,7 +211,7 @@ converter.applyHtmlToCell(cell, html);
 // Cell becomes clickable link in Excel
 ```
 
-### With Images
+### With Images (Async Download)
 ```java
 ConverterConfig config = ConverterConfig.builder()
     .enableImageDownload(true)
@@ -117,7 +221,7 @@ ConverterConfig config = ConverterConfig.builder()
 HtmlToExcelConverter converter = new HtmlToExcelConverter(workbook, config);
 String html = "<img src='https://example.com/logo.png'/>";
 converter.applyHtmlToCell(cell, html);
-// Image embedded in cell
+// Images downloaded asynchronously and embedded in cell
 ```
 
 ### Advanced Configuration
@@ -146,18 +250,19 @@ HtmlToExcelConverter converter = new HtmlToExcelConverter(workbook, config);
 | Link | `<a href="...">` | `<a href="url">text</a>` |
 | Image | `<img src="...">` | `<img src="url"/>` |
 | Break | `<br>`, `<p>` | `<br/>`, `<p>...</p>` |
+| List | `<ul>`, `<ol>`, `<li>` | `<ul><li>item</li></ul>` |
+| Table | `<table>`, `<tr>`, `<td>` | `<table><tr><td>...</td></tr></table>` |
 
 ## 🏗️ Architecture
 
-The library follows **SOLID principles** with clean separation of concerns:
-
+### Core Module
 ```
 HtmlToExcelConverter (Facade)
 ├── Config (ConverterConfig)
 ├── Parser
 │   ├── CssParser
 │   ├── ColorParser
-│   └── HtmlTraverser
+│   └── HtmlTraverser (List/Table support)
 ├── Cache
 │   ├── FontCache
 │   └── StyleCache
@@ -165,7 +270,16 @@ HtmlToExcelConverter (Facade)
 └── Handler
     ├── BackgroundHandler
     ├── HyperlinkHandler
-    └── ImageHandler
+    └── ImageHandler (Async download)
+```
+
+### Multi-Module Structure
+```
+html2excel-richtext/
+├── html2excel-richtext-core/        # Core converter
+├── html2excel-richtext-jxls/        # JXLS integration
+├── html2excel-richtext-easyexcel/   # EasyExcel integration
+└── html2excel-richtext-examples/    # Example code
 ```
 
 ## 🔧 Requirements
@@ -184,6 +298,7 @@ Benchmarks on converting 1000 HTML snippets to Excel cells:
 | Memory | ~50MB heap |
 | Font Cache Hit Rate | >95% |
 | Style Cache Hit Rate | >90% |
+| Image Download | Async/Parallel |
 
 ## 🤝 Contributing
 
